@@ -1,15 +1,5 @@
+from crop_logic import get_crop_info
 from weather_logic import weather_decision
-
-
-def get_moisture_limit(crop_type):
-    if crop_type.lower() == "rice":
-        return 40
-    elif crop_type.lower() == "tomato":
-        return 35
-    elif crop_type.lower() == "cotton":
-        return 30
-    else:
-        return 30
 
 
 def validate_input(soil_moisture, temperature, last_water, rain_probability):
@@ -45,7 +35,16 @@ def make_decision(
     temperature,
     last_water
 ):
-    moisture_limit = get_moisture_limit(crop_type)
+    crop_info = get_crop_info(crop_type)
+
+    if crop_info is None:
+        return (
+            "INVALID CROP",
+            "Crop is not available in the EcoFarm system.",
+            0
+        )
+
+    moisture_limit = crop_info["moisture_limit"]
 
     if soil_moisture < moisture_limit and rain_expected:
         return (
@@ -116,6 +115,15 @@ else:
         temperature,
         last_water
     )
+
+    print("\n🌱 CROP INFORMATION")
+
+    crop_info = get_crop_info(crop_type)
+
+    if crop_info is not None:
+        print(f"Crop: {crop_info['name']}")
+        print(f"Moisture limit: {crop_info['moisture_limit']}%")
+        print(f"Water requirement: {crop_info['water_need']}")
 
     print("\n🌦️ WEATHER ANALYSIS")
     print(f"Rain probability: {rain_probability:.1f}%")
