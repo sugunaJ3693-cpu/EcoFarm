@@ -1,3 +1,6 @@
+from weather_logic import weather_decision
+
+
 def get_moisture_limit(crop_type):
     if crop_type.lower() == "rice":
         return 40
@@ -9,7 +12,7 @@ def get_moisture_limit(crop_type):
         return 30
 
 
-def validate_input(soil_moisture, temperature, last_water):
+def validate_input(soil_moisture, temperature, last_water, rain_probability):
     if soil_moisture < 0 or soil_moisture > 100:
         return False, "Soil moisture must be between 0% and 100%."
 
@@ -18,6 +21,9 @@ def validate_input(soil_moisture, temperature, last_water):
 
     if last_water < 0:
         return False, "Water amount cannot be negative."
+
+    if rain_probability < 0 or rain_probability > 100:
+        return False, "Rain probability must be between 0% and 100%."
 
     return True, ""
 
@@ -32,18 +38,28 @@ def calculate_water(soil_moisture, moisture_limit, temperature):
     return water_amount
 
 
-def make_decision(crop_type, soil_moisture, rain_expected,
-                  temperature, last_water):
-
+def make_decision(
+    crop_type,
+    soil_moisture,
+    rain_expected,
+    temperature,
+    last_water
+):
     moisture_limit = get_moisture_limit(crop_type)
 
     if soil_moisture < moisture_limit and rain_expected:
-        return "IRRIGATION POSTPONED", \
-               "Soil moisture is low, but rain is expected.", 0
+        return (
+            "IRRIGATION POSTPONED",
+            "Soil moisture is low, but rain is expected.",
+            0
+        )
 
     if soil_moisture < moisture_limit and last_water >= 100:
-        return "IRRIGATION DELAYED", \
-               "Significant water was applied recently.", 0
+        return (
+            "IRRIGATION DELAYED",
+            "Significant water was applied recently.",
+            0
+        )
 
     if soil_moisture < moisture_limit:
         water_amount = calculate_water(
@@ -52,36 +68,47 @@ def make_decision(crop_type, soil_moisture, rain_expected,
             temperature
         )
 
-        return "IRRIGATION RECOMMENDED", \
-               "Soil moisture is below the required level.", water_amount
+        return (
+            "IRRIGATION RECOMMENDED",
+            "Soil moisture is below the required level.",
+            water_amount
+        )
 
-    return "IRRIGATION NOT REQUIRED", \
-           "Soil moisture is sufficient.", 0
+    return (
+        "IRRIGATION NOT REQUIRED",
+        "Soil moisture is sufficient.",
+        0
+    )
 
 
 # ---------------- MAIN PROGRAM ----------------
 
 crop_type = input("Enter crop type (rice/tomato/cotton): ")
 soil_moisture = float(input("Enter soil moisture (%): "))
-rain_input = input("Is rain expected? (yes/no): ")
+rain_probability = float(input("Enter rain probability (%): "))
 temperature = float(input("Enter temperature (°C): "))
 last_water = float(input("Water applied recently (liters): "))
 
-rain_expected = rain_input.lower() == "yes"
+
+rain_expected, weather_reason = weather_decision(
+    rain_probability,
+    temperature
+)
+
 
 valid, error_message = validate_input(
     soil_moisture,
     temperature,
-    last_water
+    last_water,
+    rain_probability
 )
 
-if not valid:
 
+if not valid:
     print("\n⚠️ INVALID INPUT")
     print(error_message)
 
 else:
-
     decision, reason, water_amount = make_decision(
         crop_type,
         soil_moisture,
@@ -89,6 +116,10 @@ else:
         temperature,
         last_water
     )
+
+    print("\n🌦️ WEATHER ANALYSIS")
+    print(f"Rain probability: {rain_probability:.1f}%")
+    print(f"Weather reason: {weather_reason}")
 
     print(f"\n🌱 {decision}")
     print(f"Reason: {reason}")
